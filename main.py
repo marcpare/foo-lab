@@ -31,8 +31,8 @@ import base64
 #
 # ----------------------------------------
 
-API-KEY = "ADGZ-9NNW-1U81-LVXA"
-SUBDOMAIN = "marcpare"
+# API-KEY = "ADGZ-9NNW-1U81-LVXA"
+# SUBDOMAIN = "marcpare"
 
 def renderPageHelper(self, filename, template_values = {}, include_session_data = True):	
 	path = os.path.join(os.path.dirname(__file__), filename)
