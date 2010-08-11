@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="block">
+    <p>use foo lab to remix your Wufoo form data into something magical.</p>
+</div>
+
+<div class="block">
+    <h3>your Wufoo forms</h3>
+    <!--
+    <p>fill out config.yaml in your app to have your forms show up here.</p>
+    <p>get your API key from Wufoo. Follow these links:</p>
+    <ul>
+        <li>Form Manager or "Forms Tab"</li>
+        <li>Code</li>
+        <li>API Information</li>
+    </ul>
+    
+    -->
+    
+    <ul id="form-list">
+        <li>
+            <h4>your-first-form</h4>
+            <form>
+                <ul>
+                    <li class="right">
+                    <input id="hookForm" name="hookForm" type="submit" value="Hook Form" onmousedown="doHook();" />
+                    </li>
+                </ul>
+            </form>
+        </li>
+        
+        <li>
+            <h4>another-form</h4>
+            <form>
+                <ul>
+                    <li class="right">
+                    <input id="hookForm" name="hookForm" type="submit" value="Hook Form" onmousedown="doHook();" />
+                    </li>
+                </ul>
+            </form>
+        </li>
+    </ul>
+    
+    
+<!--        
+    <form id="form1" name="form1" autocomplete="off" enctype="multipart/form-data" method="post" action="">
+
+    <ul>
+        <li>
+        <label class="desc" id="title10" for="Field_API">
+        API Key
+        </label>
+        <div>
+        <input id="Field_API" name="Field_API" type="text" value="" maxlength="255" class="text"/>
+        </div>
+        </li>
+
+        <li>
+        <div>
+        <input id="hookForm" name="hookForm" type="submit" value="Hook Form" onmousedown="doHook();" />
+        </div>
+        </li>
+
+    </ul>
+        
+    </form>
+-->
+</div>
+
+{% endblock %}

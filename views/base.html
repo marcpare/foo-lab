@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+    <title>{% block title %}foo lab &middot; by thinly spread &amp; team curious{% endblock %}</title>
+
+    <meta name="robots" content="index, follow" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="description" content="foo lab is..." />
+
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/combo?2.7.0/build/reset-fonts/reset-fonts.css&amp;2.7.0/build/base/base-min.css" /> 
+	<style type="text/css" media="screen">
+	    html { background: #aaa; }
+	    #outer-wrapper { background: white; width: 800px; margin: 0 auto; padding: 30px; padding-top: 20px;}
+	    
+	    .block { width: 350px; padding: 30px; padding-bottom: 15px; background: #eee; margin-bottom: 10px;}
+	    
+	    form ul { margin-left: 0px; padding-left: 0px;}
+	    form li { list-style-type: none; }
+	    input.text { width: 325px; }
+	    
+	    #form-list { margin-left: 0px; }
+	    #form-list > li { border: 1px solid #999; list-style-type: none; padding: 5px; margin-bottom: 10px;}
+	    
+	    li.right { text-align: right;}
+        
+	</style>
+	
+    <body>
+    <div id="outer-wrapper">
+        <div id="header"><h1>foo lab</h1></div>
+        <div id="content">{% block content %}{% endblock %}</div>
+    </div>
+    </body>
