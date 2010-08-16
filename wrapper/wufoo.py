@@ -9,10 +9,19 @@ import simplejson
 import sys
 import urllib
 import urllib2
+from urllib2 import HTTPError
 import urlparse
 import dateutil
 import dateutil.parser
 import datetime
+
+class WufooError(Exception):
+  '''Base class for Wufoo errors'''
+  
+  @property
+  def message(self):
+    '''Returns the first argument used to construct this error.'''
+    return self.args[0]
 
 class Report(object):
   '''A class representing the Report structure used by the Wufoo API.
@@ -414,6 +423,8 @@ class Api(object):
     json = self._FetchUrl(url, parameters=parameters)
     data = simplejson.loads(json)
     
+    print data
+    
     return [Form.NewFromJsonDict(x) for x in data['Forms']]
 
   def GetForm(self, hash):
@@ -429,11 +440,19 @@ class Api(object):
     '''
     parameters = {}
     url = "https://%s.wufoo.com/api/v3/forms/%s.json" % (self._subdomain, hash)
-    json = self._FetchUrl(url, parameters=parameters)
+    
+    try:
+      json = self._FetchUrl(url, parameters=parameters)
+    except HTTPError, ef:
+      if ef.msg == 'Invalid identifier.':
+        raise WufooError(ef.msg)
+      else:
+        # A different type of HTTP error
+        raise ef
+      
     data = simplejson.loads(json)
-
+  
     return Form.NewFromJsonDict(data['Forms'][0])
-
 
   def GetReports(self):
     '''Fetch the sequence of all reports for a user.
@@ -446,7 +465,28 @@ class Api(object):
     json = self._FetchUrl(url, parameters=parameters)
     data = simplejson.loads(json)
     
-    return [Report.NewFromJsonDict(x) for x in data['Reports']]    
+    return [Report.NewFromJsonDict(x) for x in data['Reports']]   
+    
+  def GetReport(self, hash):
+    '''Fetch a single report for a user.
+
+    Args:
+      hash:
+        Returns the Report with the specified hash
+    
+    Returns:
+      The wufoo.Report instance that corresponds to the given hash
+
+    '''
+    parameters = {}
+    url = "https://%s.wufoo.com/api/v3/reports/%s.json" % (self._subdomain, hash)
+    json = self._FetchUrl(url, parameters=parameters)
+    data = simplejson.loads(json)
+
+    if data['Reports'][0] is None:
+      raise WufooError('Invalid identifier.')
+
+    return Report.NewFromJsonDict(data['Reports'][0])
 
   def GetPublicTimeline(self, since_id=None):
     '''Fetch the sequnce of public twitter.Status message for all users.
@@ -527,7 +567,7 @@ class Api(object):
     '''
     self._username = None
     self._password = None
-
+    
   def SetUrllib(self, urllib):
     '''Override the default urllib implementation.
 
@@ -535,6 +575,14 @@ class Api(object):
       urllib: an instance that supports the same API as the urllib2 module
     '''
     self._urllib = urllib
+
+  def GetUrllib(self):
+    '''The the implementation of urllib used.
+    
+    Returns:
+      The urllib instance used by this API wrapper
+    '''
+    return self._urllib
 
   def SetUserAgent(self, user_agent):
     '''Override the default user agent
@@ -729,24 +777,18 @@ class Api(object):
     
 if __name__ == "__main__":
   
-  wufoo = Api("marcpare", "ADGZ-9NNW-1U81-LVXA")
-  # for x in wufoo.GetForms():
+  wufoo = Api("footest", "W9NL-EB7O-LYRQ-SZNT")
+  #wufoo.GetForms()
+  
+  #for x in wufoo.GetForms():
   #  print str(x)
     
   # Nice! The difference between when the form was updated and right now
-  # a_form = wufoo.GetForm('z7x4a9')
+  #wufoo.GetForms()
+  a_form = wufoo.GetForm('m7x3p9adf')
   # updated = a_form.date_updated
   # print datetime.datetime.now() - updated
+
+
   
-  # print a_form.date_created
-  # print a_form.start_date
-  # print a_form.end_date
   
-  # Tests:
-  # GetForms gets the right number of forms
-  # GetForm for a valid hash
-  # GetForm for an invalid hash
-  # Date accessors in mock
-  
-  for x in wufoo.GetReports():
-    print x
