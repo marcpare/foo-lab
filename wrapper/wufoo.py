@@ -1,4 +1,29 @@
-'''A library that provides a Python interface to the Wufoo API'''
+'''A library that provides a Python interface to the Wufoo API
+
+Challenges and design decisions:
+
+Some of the code is generated, but the final version is made by hand.
+Certain classes have custom logic that had to be added. Here's a list:
+
+* embed_code method of Widget class (which needs subdomain)
+* filtering in Entry class
+* count method for Entry
+* count method for Comment
+* compressing Fields in Entry class into a map (comes as a list,
+  can't make them properties on the fly)
+
+Lingering Concerns:
+
+* Post using a form url? This works, but should maybe rename the parameter 'form_hash'
+* Consistent error and success messages
+  * posting entry is different than the others...
+* PUT web hook has a 500 error?
+* Login not going to be implemeted b/c can't be tested w/o integrationKey
+  * Also, 'integraitonKey'? Is that mispelled?
+* Forms IncludeTodayCount
+* 
+
+'''
 
 __author__ = 'mpare@gatech.edu'
 __version__ = '0.1-devel'
@@ -23,25 +48,730 @@ class WufooError(Exception):
     '''Returns the first argument used to construct this error.'''
     return self.args[0]
 
+class Field(object):
+  def __init__(self, type=None, id=None, title=None, is_required=None, subfields=None, label=None, score=None, choices=None):
+    self._type=type
+    self._id=id
+    self._title=title
+    self._is_required=is_required
+    self._subfields=subfields
+    self._label=label
+    self._score=score
+    self._choices=choices
+
+  @property
+  def type(self):
+    return self._type
+
+  @property
+  def id(self):
+    return self._id
+
+  @property
+  def title(self):
+    return self._title
+
+  @property
+  def is_required(self):
+    return self._is_required
+
+  @property
+  def subfields(self):
+    return self._subfields
+
+  @property
+  def label(self):
+    return self._label
+
+  @property
+  def score(self):
+    return self._score
+
+  @property
+  def choices(self):
+    return self._choices
+
+
+  def __str__(self):
+    '''A string representation of this wufoo.Field instance.
+
+    The return value is the same as the JSON string representation.
+
+    Returns:
+      A string representation of this wufoo.Field instance.
+    '''
+    return self.AsJsonString()
+
+  def AsJsonString(self):
+    '''A JSON string representation of this wufoo.Field instance.
+
+    Returns:
+      A JSON string representation of this wufoo.Field instance
+   '''
+    return simplejson.dumps(self.AsDict(), sort_keys=True)
+
+  def AsDict(self):
+    '''A dict representation of this wufoo.Field instance.
+
+    The return value uses the same key names as the JSON representation.
+
+    Return:
+      A dict representing this wufoo.Field instance
+    '''
+    data = {}
+
+    if self._type:
+      data['type'] = self._type
+    if self._id:
+      data['id'] = self._id
+    if self._title:
+      data['title'] = self._title
+    if self._is_required:
+      data['is_required'] = self._is_required
+    if self._subfields:
+      data['subfields'] = [x.AsDict() for x in self._subfields]
+    if self._label:
+      data['label'] = self._label
+    if self._score:
+      data['score'] = self._score
+    if self._choices:
+      data['choices'] = [x.AsDict() for x in self._choices]
+
+    return data
+
+  @staticmethod
+  def NewFromJsonDict(data):
+    '''Create a new instance based on a JSON dict.
+
+    Args:
+      data: A JSON dict, as converted from the JSON in the Wufoo API
+    Returns:
+      A wufoo.Field instance
+    '''
+    
+    # If there are subfields or choices, create Field instances
+    if 'Choices' in data:
+      data['Choices'] = [Field.NewFromJsonDict(x) for x in data['Choices']]
+    if 'SubFields' in data:
+      data['SubFields'] = [Field.NewFromJsonDict(x) for x in data['SubFields']]
+
+    return Field(type=data.get('Type', None),
+                  id=data.get('ID', None),
+                  title=data.get('Title', None),
+                  is_required=data.get('IsRequired', None),
+                  subfields=data.get('SubFields', None),
+                  label=data.get('Label', None),
+                  score=data.get('Score', None),
+                  choices=data.get('Choices', None))
+
+class Comment(object):
+  '''Class for representing the structure of the Comment class in the Wufoo API'''
+  
+  def __init__(self, commented_by=None, comment_id=None, date_created=None, entry_id=None, text=None):
+    self._commented_by=commented_by
+    self._comment_id=comment_id
+    self._date_created=date_created
+    self._entry_id=entry_id
+    self._text=text
+
+  @property
+  def commented_by(self):
+    return self._commented_by
+
+  @property
+  def comment_id(self):
+    return self._comment_id
+
+  @property
+  def date_created(self):
+    return dateutil.parser.parse(self._date_created)
+
+  @property
+  def entry_id(self):
+    return self._entry_id
+
+  @property
+  def text(self):
+    return self._text
+
+  def __str__(self):
+    '''A string representation of this wufoo.Comment instance.
+
+    The return value is the same as the JSON string representation.
+
+    Returns:
+      A string representation of this wufoo.Comment instance.
+    '''
+    return self.AsJsonString()
+
+  def AsJsonString(self):
+    '''A JSON string representation of this wufoo.Comment instance.
+
+    Returns:
+      A JSON string representation of this wufoo.Comment instance
+   '''
+    return simplejson.dumps(self.AsDict(), sort_keys=True)
+
+  def AsDict(self):
+    '''A dict representation of this wufoo.Comment instance.
+
+    The return value uses the same key names as the JSON representation.
+
+    Return:
+      A dict representing this wufoo.Comment instance
+    '''
+    data = {}
+
+    if self._commented_by:
+      data['commented_by'] = self._commented_by
+    if self._comment_id:
+      data['comment_id'] = self._comment_id
+    if self._date_created:
+      data['date_created'] = self._date_created
+    if self._entry_id:
+      data['entry_id'] = self._entry_id
+    if self._text:
+      data['text'] = self._text
+
+    return data
+
+  @staticmethod
+  def NewFromJsonDict(data):
+    '''Create a new instance based on a JSON dict.
+
+    Args:
+      data: A JSON dict, as converted from the JSON in the Wufoo API
+    Returns:
+      A wufoo.Comment instance
+    '''
+    # Compress the Field[id] values into maps
+    fields = {}
+    for k, v in data.items():
+      if k.startswith('Field'):
+        fields[k] = v
+
+    return Comment(commented_by=data.get('CommentedBy', None),
+                    comment_id=data.get('CommentId', None),
+                    date_created=data.get('DateCreated', None),
+                    entry_id=data.get('EntryId', None),
+                    text=data.get('Text', None))
+
+class Widget(object):
+  '''Class for representing the structure of the Widget class in Wufoo API'''
+
+  def __init__(self, subdomain=None, type=None, type_desc=None, hash=None, name=None, size=None):
+    self._subdomain=subdomain
+    self._type=type
+    self._type_desc=type_desc
+    self._hash=hash
+    self._name=name
+    self._size=size
+
+  @property
+  def embed_code(self):
+    return '''
+    <script type="text/javascript">
+      var host = (("https:" == document.location.protocol) ? "https://" : "http://");
+      document.write(unescape("%%3Cscript src='" + host + "%s.wufoo.com/scripts/widget/embed.js?w=%s' type='text/javascript'%%3E%%3C/script%%3E"));
+    </script>
+    ''' % (self.subdomain, self.hash)
+  
+  @property
+  def subdomain(self):
+    return self._subdomain
+  
+  @property
+  def type(self):
+    return self._type
+
+  @property
+  def type_desc(self):
+    return self._type_desc
+
+  @property
+  def hash(self):
+    return self._hash
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def size(self):
+    return self._size
+
+  def __str__(self):
+    '''A string representation of this wufoo.Widget instance.
+
+    The return value is the same as the JSON string representation.
+
+    Returns:
+      A string representation of this wufoo.Widget instance.
+    '''
+    return self.AsJsonString()
+
+  def AsJsonString(self):
+    '''A JSON string representation of this wufoo.Widget instance.
+
+    Returns:
+      A JSON string representation of this wufoo.Widget instance
+   '''
+    return simplejson.dumps(self.AsDict(), sort_keys=True)
+
+  def AsDict(self):
+    '''A dict representation of this wufoo.Widget instance.
+
+    The return value uses the same key names as the JSON representation.
+
+    Return:
+      A dict representing this wufoo.Widget instance
+    '''
+    data = {}
+
+    if self._type:
+      data['type'] = self._type
+    if self._type_desc:
+      data['type_desc'] = self._type_desc
+    if self._hash:
+      data['hash'] = self._hash
+    if self._name:
+      data['name'] = self._name
+    if self._size:
+      data['size'] = self._size
+      
+    data['embed_code'] = self.embed_code
+
+    return data
+
+  @staticmethod
+  def NewFromJsonDict(data, subdomain):
+    '''Create a new instance based on a JSON dict.
+
+    Args:
+      data: A JSON dict, as converted from the JSON in the Wufoo API
+    Returns:
+      A wufoo.Widget instance
+    '''
+
+    # Compress the Field[id] values into maps
+    fields = {}
+    for k, v in data.items():
+      if k.startswith('Field'):
+        fields[k] = v
+
+    return Widget(subdomain=subdomain,
+                  type=data.get('Type', None),
+                  type_desc=data.get('TypeDesc', None),
+                  hash=data.get('Hash', None),
+                  name=data.get('Name', None),
+                  size=data.get('Size', None))
+
+class User(object):
+  '''Class to represent the User structure in the Wufoo API.'''
+  def __init__(self, api_key=None, hash=None, is_account_owner=None, image=None, company=None, link_forms=None, create_themes=None, link_reports=None, user=None, create_reports=None, time_zone=None, create_forms=None, admin_access=None, email=None):
+    self._api_key=api_key
+    self._hash=hash
+    self._is_account_owner=is_account_owner
+    self._image=image
+    self._company=company
+    self._link_forms=link_forms
+    self._create_themes=create_themes
+    self._link_reports=link_reports
+    self._user=user
+    self._create_reports=create_reports
+    self._time_zone=time_zone
+    self._create_forms=create_forms
+    self._admin_access=admin_access
+    self._email=email
+
+  @property
+  def api_key(self):
+    return self._api_key
+
+  @property
+  def hash(self):
+    return self._hash
+
+  @property
+  def is_account_owner(self):
+    return self._is_account_owner
+
+  @property
+  def image(self):
+    return self._image
+
+  @property
+  def company(self):
+    return self._company
+
+  @property
+  def link_forms(self):
+    return self._link_forms
+
+  @property
+  def create_themes(self):
+    return self._create_themes
+
+  @property
+  def link_reports(self):
+    return self._link_reports
+
+  @property
+  def user(self):
+    return self._user
+
+  @property
+  def create_reports(self):
+    return self._create_reports
+
+  @property
+  def time_zone(self):
+    return self._time_zone
+
+  @property
+  def create_forms(self):
+    return self._create_forms
+
+  @property
+  def admin_access(self):
+    return self._admin_access
+
+  @property
+  def email(self):
+    return self._email
+
+  def __str__(self):
+    '''A string representation of this wufoo.User instance.
+
+    The return value is the same as the JSON string representation.
+
+    Returns:
+      A string representation of this wufoo.User instance.
+    '''
+    return self.AsJsonString()
+
+  def AsJsonString(self):
+    '''A JSON string representation of this wufoo.User instance.
+
+    Returns:
+      A JSON string representation of this wufoo.User instance
+   '''
+    return simplejson.dumps(self.AsDict(), sort_keys=True)
+
+  def AsDict(self):
+    '''A dict representation of this wufoo.User instance.
+
+    The return value uses the same key names as the JSON representation.
+
+    Return:
+      A dict representing this wufoo.User instance
+    '''
+    data = {}
+
+    if self._api_key:
+      data['api_key'] = self._api_key
+    if self._hash:
+      data['hash'] = self._hash
+    if self._is_account_owner:
+      data['is_account_owner'] = self._is_account_owner
+    if self._image:
+      data['image'] = self._image
+    if self._company:
+      data['company'] = self._company
+    if self._link_forms:
+      data['link_forms'] = self._link_forms
+    if self._create_themes:
+      data['create_themes'] = self._create_themes
+    if self._link_reports:
+      data['link_reports'] = self._link_reports
+    if self._user:
+      data['user'] = self._user
+    if self._create_reports:
+      data['create_reports'] = self._create_reports
+    if self._time_zone:
+      data['time_zone'] = self._time_zone
+    if self._create_forms:
+      data['create_forms'] = self._create_forms
+    if self._admin_access:
+      data['admin_access'] = self._admin_access
+    if self._email:
+      data['email'] = self._email
+
+    return data
+
+  @staticmethod
+  def NewFromJsonDict(data):
+    '''Create a new instance based on a JSON dict.
+
+    Args:
+      data: A JSON dict, as converted from the JSON in the Wufoo API
+    Returns:
+      A wufoo.User instance
+    '''
+
+    # Compress the Field[id] values into maps
+    fields = {}
+    for k, v in data.items():
+      if k.startswith('Field'):
+        fields[k] = v
+
+    return User(api_key=data.get('ApiKey', None),
+                hash=data.get('Hash', None),
+                is_account_owner=data.get('IsAccountOwner', None),
+                image=data.get('Image', None),
+                company=data.get('Company', None),
+                link_forms=data.get('LinkForms', None),
+                create_themes=data.get('CreateThemes', None),
+                link_reports=data.get('LinkReports', None),
+                user=data.get('User', None),
+                create_reports=data.get('CreateReports', None),
+                time_zone=data.get('TimeZone', None),
+                create_forms=data.get('CreateForms', None),
+                admin_access=data.get('AdminAccess', None),
+                email=data.get('Email', None))
+
+class Filter(object):
+  ''' A class for constructing Entry query filters
+  
+  Consists of
+  
+  {ID} {Operator} {Value}
+  
+  Can filter on any valid Field ID
+  
+  Valid operators
+
+      * 'contains';
+      * 'does_not_contain';
+      * 'begins_with';
+      * 'ends_with';
+      * 'is_less_than';
+      * 'is_greater_than';
+      * 'is_on';
+      * 'is_before';
+      * 'is_after';
+      * 'is_not_equal_to';
+      * 'is_equal_to';
+      * 'is_not_null';
+  
+  Value is not needed for the is_not_NULL operator
+  
+  '''
+  
+  def __init__(self, field_id, operator, value=None):
+    self._field_id = field_id
+    self._value = value
+    
+    self._operator_map = {
+    'contains':'Contains',
+    'does_not_contain':'Does_not_contain',
+    'begins_with':'Begins_with',
+    'ends_with':'Ends_with',
+    'is_less_than':'Is_less_than',
+    'is_greater_than':'Is_greater_than',
+    'is_on':'Is_on',
+    'is_before':'Is_before',
+    'is_after':'Is_after',
+    'is_not_equal_to':'Is_not_equal_to',
+    'is_equal_to':'Is_equal_to',
+    'is_not_null':'Is_not_NULL'
+    }
+    
+    if operator not in self._operator_map.keys():
+      raise ValueError('Operator must be defined one of the following: ' + ', '.join(self._operator_map.keys()))
+    
+    self._operator = operator
+    
+  @property
+  def field_id(self):
+    return self._field_id
+  
+  @property
+  def operator(self):
+    return self._operator
+  
+  @property
+  def value(self):
+    return self._value
+  
+  def __str__(self):
+    op = self._operator_map[self.operator]
+    
+    if self._value is None:
+      ret = "%s+%s" % (self.field_id, op)
+    else:
+      ret = "%s+%s+%s" % (self.field_id, op, self.value)
+    return ret
+    
+class Entry(object):
+  ''' A class for representing the Entry object in the Wufoo API
+  '''
+  
+  def __init__(self, fields=None, entry_id=None, date_created=None, created_by=None, date_updated=None, updated_by=None, status=None, purchase_total=None, ip=None, last_page=None, currency=None, transaction_id=None, complete_submission=None, merchant_type=None):
+    self._fields = fields
+    self._entry_id=entry_id
+    self._date_created=date_created
+    self._created_by=created_by
+    self._date_updated=date_updated
+    self._updated_by=updated_by
+    self._status=status
+    self._purchase_total=purchase_total
+    self._ip=ip
+    self._last_page=last_page
+    self._currency=currency
+    self._transaction_id=transaction_id
+    self._complete_submission=complete_submission
+    self._merchant_type=merchant_type
+
+  @property
+  def entry_id(self):
+    return self._entry_id
+
+  @property
+  def date_created(self):
+    return dateutil.parser.parse(self._date_created)
+
+  @property
+  def created_by(self):
+    return self._created_by
+
+  @property
+  def date_updated(self):
+    return dateutil.parser.parse(self._date_updated)
+
+  @property
+  def updated_by(self):
+    return self._updated_by
+
+  @property
+  def status(self):
+    return self._status
+
+  @property
+  def purchase_total(self):
+    return self._purchase_total
+
+  @property
+  def ip(self):
+    return self._ip
+
+  @property
+  def last_page(self):
+    return self._last_page
+
+  @property
+  def currency(self):
+    return self._currency
+
+  @property
+  def transaction_id(self):
+    return self._transaction_id
+
+  @property
+  def complete_submission(self):
+    return self._complete_submission
+
+  @property
+  def merchant_type(self):
+    return self._merchant_type
+
+  @property 
+  def fields(self):
+    return self._fields
+    
+  def __str__(self):
+    '''A string representation of this wufoo.Entry instance.
+
+    The return value is the same as the JSON string representation.
+
+    Returns:
+      A string representation of this wufoo.Entry instance.
+    '''
+    return self.AsJsonString()
+
+  def AsJsonString(self):
+    '''A JSON string representation of this wufoo.Entry instance.
+
+    Returns:
+      A JSON string representation of this wufoo.Entry instance
+   '''
+    return simplejson.dumps(self.AsDict(), sort_keys=True)
+
+  def AsDict(self):
+    '''A dict representation of this wufoo.Entry instance.
+
+    The return value uses the same key names as the JSON representation.
+
+    Return:
+      A dict representing this wufoo.Entry instance
+    '''
+    data = {}
+    
+    if self._fields:
+      data['fields'] = self._fields
+    if self._entry_id:
+      data['entry_id'] = self._entry_id
+    if self._date_created:
+      data['date_created'] = self._date_created
+    if self._created_by:
+      data['created_by'] = self._created_by
+    if self._date_updated:
+      data['date_updated'] = self._date_updated
+    if self._updated_by:
+      data['updated_by'] = self._updated_by
+    if self._status:
+      data['status'] = self._status
+    if self._purchase_total:
+      data['purchase_total'] = self._purchase_total
+    if self._ip:
+      data['ip'] = self._ip
+    if self._last_page:
+      data['last_page'] = self._last_page
+    if self._currency:
+      data['currency'] = self._currency
+    if self._transaction_id:
+      data['transaction_id'] = self._transaction_id
+    if self._complete_submission:
+      data['complete_submission'] = self._complete_submission
+    if self._merchant_type:
+      data['merchant_type'] = self._merchant_type
+      
+    return data
+    
+  @staticmethod
+  def NewFromJsonDict(data):
+    '''Create a new instance based on a JSON dict.
+
+    Args:
+      data: A JSON dict, as converted from the JSON in the Wufoo API
+    Returns:
+      A wufoo.Entry instance
+    '''
+    
+    # Compress the Field[id] values into maps
+    fields = {}
+    for k, v in data.items():
+      if k.startswith('Field'):
+        fields[k] = v
+    
+    return Entry(fields=fields,
+                  entry_id=data.get('EntryId', None),
+                  date_created=data.get('DateCreated', None),
+                  created_by=data.get('CreatedBy', None),
+                  date_updated=data.get('DateUpdated', None),
+                  updated_by=data.get('UpdatedBy', None),
+                  status=data.get('Status', None),
+                  purchase_total=data.get('PurchaseTotal', None),
+                  ip=data.get('IP', None),
+                  last_page=data.get('LastPage', None),
+                  currency=data.get('Currency', None),
+                  transaction_id=data.get('TransactionId', None),
+                  complete_submission=data.get('CompleteSubmission', None),
+                  merchant_type=data.get('MerchantType', None))
+
+
 class Report(object):
   '''A class representing the Report structure used by the Wufoo API.
-  
-  The Report class exposed the following properties:
-  
-  {'LinkEntries': 'https://marcpare.wufoo.com/api/v3/reports/z5p8s6/entries.json', 
-  'Hash': 'z5p8s6', 
-  'Name': 'Untitled Report',
-  'Url': 'untitled-report', 
-  'IsPublic': '0', 
-  'DateCreated': '2010-08-08 17:47:34', 
-  'LinkFields': 'https://marcpare.wufoo.com/api/v3/reports/z5p8s6/fields.json', 
-  'LinkWidgets': 'https://marcpare.wufoo.com/api/v3/reports/z5p8s6/widgets.json', 
-  'DateUpdated': '2010-08-08 17:47:34', 
-  'LinkEntriesCount': 'https://marcpare.wufoo.com/api/v3/reports/z5p8s6/entries/count.json', 
-  'Description': 'This is my report. View it in all its glory!'}
-  
-  ['LinkEntries', 'Hash', 'Name', 'Url', 'IsPublic', 'DateCreated', 'LinkFields', 'LinkWidgets', 'DateUpdated', 'LinkEntriesCount', 'Description']
-  
   '''
   
   def __init__(self, link_entries=None, hash=None, name=None, url=None, is_public=None, date_created=None, link_fields=None, link_widgets=None, date_updated=None, link_entries_count=None, description=None):
@@ -175,25 +905,7 @@ class Report(object):
                   description=data.get('Description', None))  
 
 class Form(object):
-  '''
-  A sample JSON response:
-  
-  {'Forms': 
-    [{'StartDate': '2000-01-01 12:00:00', 
-      'LinkEntries': 'https://marcpare.wufoo.com/api/v3/forms/z7x4a9/entries.json', 
-      'EndDate': '2030-01-01 12:00:00', 
-      'Name': 'How awesome is Marc?', 
-      'Language': 'english', 
-      'Url': 'how-awesome-is-marc', 
-      'RedirectMessage': 'Success! Thanks for filling out my form!', 
-      'IsPublic': '1', 
-      'DateCreated': '2010-08-04 02:31:53', 
-      'LinkFields': 'https://marcpare.wufoo.com/api/v3/forms/z7x4a9/fields.json', 
-      'EntryLimit': '0', 'Hash': 'z7x4a9', 'DateUpdated': '2010-08-11 00:26:02', 
-      'Email': None, 
-      'LinkEntriesCount': 'https://marcpare.wufoo.com/api/v3/forms/z7x4a9/entries/count.json', 
-      escription': "This is my form. Please fill it out. It's awesome!"}
-    ]}
+  ''' A class for representing the data in a Wufoo Form
   '''
   def __init__(self,
                start_date=None,
@@ -393,7 +1105,7 @@ class Api(object):
     '''Instantiate a new wufoo.Api object.
 
     Args:
-      subdomain: The subdomain of the WUfoo account
+      subdomain: The subdomain of the Wufoo account
       apikey: The API key of the Wufoo account. 
       input_encoding: The encoding used to encode input strings. [optional]
       request_header: A dictionary of additional HTTP request headers. [optional]
@@ -412,6 +1124,28 @@ class Api(object):
   def SetCredentials(self, apikey):
     self._apikey = apikey
 
+  def GetFieldsForForm(self, form_hash, system=None):
+    return self._GetFields('forms', form_hash, system)
+    
+  def GetFieldsForReport(self, report_hash, system=None):
+    return self._GetFields('reports', report_hash, system)
+
+  def _GetFields(self, for_what, identifier, system=None):
+    '''Fetch all the fields.
+
+    Returns:
+      A sequence of wufoo.Field instances, one for each field
+    '''
+    parameters = {}
+    if system:
+      parameters['system'] = system
+      
+    url = "https://%s.wufoo.com/api/v3/%s/%s/fields.json" % (self._subdomain, for_what, identifier)
+    json = self._FetchUrl(url, parameters=parameters)
+    data = simplejson.loads(json)
+        
+    return [Field.NewFromJsonDict(x) for x in data['Fields']]
+
   def GetForms(self):
     '''Fetch the sequence of all forms for a user.
 
@@ -422,8 +1156,6 @@ class Api(object):
     url = "https://%s.wufoo.com/api/v3/forms.json" % self._subdomain
     json = self._FetchUrl(url, parameters=parameters)
     data = simplejson.loads(json)
-    
-    print data
     
     return [Form.NewFromJsonDict(x) for x in data['Forms']]
 
@@ -487,80 +1219,228 @@ class Api(object):
       raise WufooError('Invalid identifier.')
 
     return Report.NewFromJsonDict(data['Reports'][0])
+  
+  def GetFormEntryCount(self, hash):
+    '''Fetch the entry count for a Form
+    
+    Args:
+      hash:
+        Returns the count of the entries for the Form with the specified hash
+    
+    Returns:
+      An integer count of the number of entries
+    '''    
+    parameters = {}
+    
+    url = "https://%s.wufoo.com/api/v3/forms/%s/entries/count.json" % (self._subdomain, hash)
+    
+    json = self._FetchUrl(url, parameters=parameters)
+    data = simplejson.loads(json)
 
-  def GetPublicTimeline(self, since_id=None):
-    '''Fetch the sequnce of public twitter.Status message for all users.
+    return int(data['EntryCount'])
+  
+  def GetReportEntryCount(self, hash):
+    '''Fetch the entry count for a Report
 
     Args:
-      since_id:
-        Returns only public statuses with an ID greater than (that is,
-        more recent than) the specified ID. [Optional]
+      hash:
+        Returns the count of the entries for the Report with the specified hash
 
     Returns:
-      An sequence of twitter.Status instances, one for each message
+      An integer count of the number of entries
     '''
     parameters = {}
-    if since_id:
-      parameters['since_id'] = since_id
-    url = 'http://twitter.com/statuses/public_timeline.json'
-    json = self._FetchUrl(url,  parameters=parameters)
+
+    url = "https://%s.wufoo.com/api/v3/reports/%s/entries/count.json" % (self._subdomain, hash)
+
+    json = self._FetchUrl(url, parameters=parameters)
     data = simplejson.loads(json)
-    self._CheckForTwitterError(data)
-    return [Status.NewFromJsonDict(x) for x in data]
 
-  def PostUpdate(self, status, in_reply_to_status_id=None):
-    '''Post a twitter status message from the authenticated user.
+    return int(data['EntryCount']) 
+    
+  def GetEntriesForForm(self, hash, system=False, filters=None, match='AND', sort_id=None, sort_direction='DESC', page_start=None, page_size=None):
+    return self._GetEntries(hash, 'forms', system=system, filters=filters, match=match, sort_id=sort_id, sort_direction=sort_direction, page_start=page_start, page_size=page_size)
 
-    The twitter.Api instance must be authenticated.
+  def GetEntriesForReport(self, hash, system=False, filters=None, match='AND', sort_id=None, sort_direction='DESC', page_start=None, page_size=None):
+    return self._GetEntries(hash, 'reports', system=system, filters=filters, match=match, sort_id=sort_id, sort_direction=sort_direction, page_start=page_start, page_size=page_size)
+    
+  def _GetEntries(self, hash, for_what, system=False, filters=None, match='AND', sort_id=None, sort_direction='DESC', page_start=None, page_size=None):
+    '''Fetch all entries related to a Report or Form
 
     Args:
-      status:
-        The message text to be posted.  Must be less than or equal to
-        140 characters.
-      in_reply_to_status_id:
-        The ID of an existing status that the status to be posted is
-        in reply to.  This implicitly sets the in_reply_to_user_id
-        attribute of the resulting status to the user ID of the
-        message being replied to.  Invalid/missing status IDs will be
-        ignored. [Optional]
+      for_what:
+        Either "form" or "report"
+      hash:
+        Returns the Entries from the form with the specified hash
+      system:
+        Set to True to include system fields
+      filter:
+        List of filters applied to the results
+      match:
+        'AND' or 'OR' to chain together filters
+      sort_id:
+        Field ID to sort on. See the Field API
+      sort_direction:
+        Sort direction, either ASC or DESC
+      page_start:
+        Page to start on (0 by default)
+      page_end:
+        Page to end on
+
     Returns:
-      A twitter.Status instance representing the message posted.
+      Set of wufoo.Entry instances that corresponds to the given Report or Form
     '''
-    if not self._username:
-      raise TwitterError("The twitter.Api instance must be authenticated.")
+    parameters = {}
+    if system:
+      parameters['system'] = 'true'
+    if sort_id:
+      parameters['sort'] = sort_id
+    if sort_direction:
+      parameters['sortDirection'] = sort_direction
+    if page_start:
+      parameters['pageStart'] = page_start
+    if page_size:
+      parameters['pageSize'] = page_size
+    if match:
+      parameters['match'] = match
+    if filters:
+      try:
+        # Is it a list of filter objects?
+        for (i, f) in zip(range(len(filters)), filters):
+          parameters['Filter'+str(i)] = str(f)
+      except (TypeError):
+        # It's just one filter?
+        parameters['Filter1'] = str(filters)
 
-    url = 'http://twitter.com/statuses/update.json'
-
-    if len(status) > CHARACTER_LIMIT:
-      raise TwitterError("Text must be less than or equal to %d characters. "
-                         "Consider using PostUpdates." % CHARACTER_LIMIT)
-
-    data = {'status': status}
-    if in_reply_to_status_id:
-      data['in_reply_to_status_id'] = in_reply_to_status_id
-    json = self._FetchUrl(url, post_data=data)
+    url = "https://%s.wufoo.com/api/v3/%s/%s/entries.json" % (self._subdomain, for_what, hash)
+    
+    # The filter can't have the + signs url encoded.
+    def re_plus(s):
+      return s.replace('%2B', '+')
+    
+    json = self._FetchUrl(url, parameters=parameters, url_post_process=re_plus)
     data = simplejson.loads(json)
-    self._CheckForTwitterError(data)
-    return Status.NewFromJsonDict(data)
 
-  def DestroyDirectMessage(self, id):
-    '''Destroys the direct message specified in the required ID parameter.
+    return [Entry.NewFromJsonDict(x) for x in data['Entries']]
+  
+  def GetUsers(self):
+    url = "https://%s.wufoo.com/api/v3/users.json" % (self._subdomain)
+    json = self._FetchUrl(url, parameters={})
+    data = simplejson.loads(json)
+    return [User.NewFromJsonDict(x) for x in data['Users']]
 
-    The twitter.Api instance must be authenticated, and the
-    authenticating user must be the recipient of the specified direct
-    message.
+  def GetWidgets(self, report_hash):
+    url = "https://%s.wufoo.com/api/v3/reports/%s/widgets.json" % (self._subdomain, report_hash)
+    json = self._FetchUrl(url, parameters={})
+    data = simplejson.loads(json)
+    return [Widget.NewFromJsonDict(x, self._subdomain) for x in data['Widgets']]
+
+  def GetComments(self, form_hash, entry_id=None, page_start=None, page_size=None):
+    '''Fetch all comments related to a Form
 
     Args:
-      id: The id of the direct message to be destroyed
+      for_what:
+        Either "form" or "report"
+      form_hash:
+        Returns the Entries from the form with the specified hash
+      entry_id
+        Return only comments from a specific entry
+      page_start:
+        Page to start on (0 by default)
+      page_size:
+        Number of comments per page
 
     Returns:
-      A twitter.DirectMessage instance representing the message destroyed
+      Set of wufoo.Comment instances that corresponds to the given Form
     '''
-    url = 'http://twitter.com/direct_messages/destroy/%s.json' % id
-    json = self._FetchUrl(url, post_data={})
+    parameters = {}
+    if entry_id:
+      parameters['entryId'] = entry_id
+    if page_start:
+      parameters['pageStart'] = page_start
+    if page_size:
+      parameters['pageSize'] = page_size
+
+    url = "https://%s.wufoo.com/api/v3/forms/%s/comments.json" % (self._subdomain, form_hash)
+    json = self._FetchUrl(url, parameters=parameters)
     data = simplejson.loads(json)
-    self._CheckForTwitterError(data)
-    return DirectMessage.NewFromJsonDict(data)
+
+    return [Comment.NewFromJsonDict(x) for x in data['Comments']]
+    
+    
+  def GetCommentCount(self, form_hash, entry_id=None):
+    '''Fetch the number of comments for a form
+    
+    Args:
+      hash:
+        Returns the count of the entries for the Form with the specified hash
+    
+    Returns:
+      An integer count of the number of entries
+    '''    
+    url = "https://%s.wufoo.com/api/v3/forms/%s/comments/count.json" % (self._subdomain, form_hash)
+    
+    parameters = {}
+    if entry_id:
+      parameters['entryId'] = entry_id
+    
+    json = self._FetchUrl(url, parameters=parameters)
+    data = simplejson.loads(json)
+
+    return int(data['Count'])
+  
+  def PostEntry(self, form_hash, entry_data):
+    '''Post an entry for a form. Assumes data is well-formed.
+
+    Args:
+      form_hash:
+        The identifier for the form to be submitted.
+      data:
+        A dictionary of the data to be submitted. Keys should correspond
+        to field names.
+    '''
+
+    url = 'https://%s.wufoo.com/api/v3/forms/%s/entries.json' % (self._subdomain, form_hash)
+
+    try:
+      #print url
+      json = self._FetchUrl(url, post_data=entry_data)
+      # Error
+      data = simplejson.loads(json)
+      raise WufooError(data['ErrorText'])
+    except HTTPError, e:
+      # Success if 201 response
+      json = e.read()
+      data = simplejson.loads(json)
+      
+  def PutWebHook(self, form_hash, url, handshake_key=None, metadata=None):
+    ''' Creates/Updates a web hook on a Wufoo form.
+    
+    Args:
+      form_hash:
+        The form to add the hook to
+      url:
+        The URL to receive web hook calls
+      handshake_key:
+        Optional authentication key to prevent spam
+      metadata:
+        Optional parameter to send along form/field metadata
+    
+    Returns:
+      The web hook hash used to delete the web hook
+    '''
+    
+    url = "https://%s.wufoo.com/api/v3/forms/%s/webhooks.json" % (self._subdomain, form_hash)
+    
+    post_data = {}
+    post_data['url'] = url
+    if handshake_key:
+      post_data['handshakeKey'] = handshake_key
+    if metadata:
+      post_data['metadata'] = metadata
+    
+    json = self._FetchUrl(url, post_data=post_data)
+    data = simplejson.loads(json)
 
   def ClearCredentials(self):
     '''Clear the username and password for this instance
@@ -591,38 +1471,6 @@ class Api(object):
       user_agent: a string that should be send to the server as the User-agent
     '''
     self._request_headers['User-Agent'] = user_agent
-
-  def SetXTwitterHeaders(self, client, url, version):
-    '''Set the X-Twitter HTTP headers that will be sent to the server.
-
-    Args:
-      client:
-         The client name as a string.  Will be sent to the server as
-         the 'X-Twitter-Client' header.
-      url:
-         The URL of the meta.xml as a string.  Will be sent to the server
-         as the 'X-Twitter-Client-URL' header.
-      version:
-         The client version as a string.  Will be sent to the server
-         as the 'X-Twitter-Client-Version' header.
-    '''
-    self._request_headers['X-Twitter-Client'] = client
-    self._request_headers['X-Twitter-Client-URL'] = url
-    self._request_headers['X-Twitter-Client-Version'] = version
-
-  def SetSource(self, source):
-    '''Suggest the "from source" value to be displayed on the Twitter web site.
-
-    The value of the 'source' parameter must be first recognized by
-    the Twitter server.  New source values are authorized on a case by
-    case basis by the Twitter development team.
-
-    Args:
-      source:
-        The source name as a string.  Will be sent to the server as
-        the 'source' parameter.
-    '''
-    self._default_params['source'] = source
 
   def _BuildUrl(self, url, path_elements=None, extra_params=None):
     # Break url into consituent parts
@@ -724,23 +1572,11 @@ class Api(object):
     else:
       return urllib.urlencode(dict([(k, self._Encode(v)) for k, v in post_data.items()]))
 
-  def _CheckForTwitterError(self, data):
-    """Raises a TwitterError if twitter returns an error message.
-
-    Args:
-      data: A python dict created from the Twitter json response
-    Raises:
-      TwitterError wrapping the twitter error message if one exists.
-    """
-    # Twitter errors are relatively unlikely, so it is faster
-    # to check first, rather than try and catch the exception
-    if 'error' in data:
-      raise TwitterError(data['error'])
-
   def _FetchUrl(self,
                 url,
                 post_data=None,
-                parameters=None):
+                parameters=None,
+                url_post_process=None):
     '''Fetch a URL, optionally caching for a specified time.
 
     Args:
@@ -750,6 +1586,8 @@ class Api(object):
       parameters:
         A dict whose key/value pairs should encoded and added 
         to the query string. [OPTIONAL]
+      url_post_process:
+        Function to post process the URL once it has been encoded. [OPTIONAL]
 
     Returns:
       A string containing the body of the response.
@@ -768,7 +1606,12 @@ class Api(object):
     opener = self._GetOpener(url, username=self._apikey, password="foo")
 
     encoded_post_data = self._EncodePostData(post_data)
-
+    
+    # HACK: is there a better way to do this?
+    # In order for filtering to work, we can't url encode the + signs
+    if url_post_process:
+      url = url_post_process(url)
+    
     # Open and return the URL
     url_data = opener.open(url, encoded_post_data).read()
     opener.close()
@@ -785,10 +1628,68 @@ if __name__ == "__main__":
     
   # Nice! The difference between when the form was updated and right now
   #wufoo.GetForms()
-  a_form = wufoo.GetForm('m7x3p9adf')
+  #a_form = wufoo.GetForm('m7x3p9')
   # updated = a_form.date_updated
   # print datetime.datetime.now() - updated
-
-
+  
+  # reports = wufoo.GetReports()
+  #print reports
+  # print reports[0].hash
+  # es = wufoo.GetEntriesForReport(reports[0].hash)
+  
+  # wufoo.GetEntriesForForm('m7x3p9', system=True, sort_id='Field1', sort_direction='ASC')
+  
+  # wufoo.GetEntriesForForm('m7x3p9', page_size=2)
+  # wufoo.GetEntriesForForm('m7x3p9', page_size=1, page_start=0)
+  # wufoo.GetEntriesForForm('m7x3p9', page_size=1, page_start=1)
+  
+  #print es[0]
+  
+  # you will want to layer the Fields GET with the Entries GET...
+  # {'Entries': [{'DateUpdated': '', 'EntryId': '1', 'Field108': 'Paris', 'CreatedBy': 'public', 'UpdatedBy': None, 'Field105': 'France', 'Field104': 'Brie', 'Field107': 'St', 'Field106': '100', 'DateCreated': '2010-08-17 11:39:35', 'Field110': ''}]}
+  
+  # print wufoo.GetFormEntryCount('m7x3p9')
+  # print wufoo.GetReportEntryCount('z5p8s0')
+  
+  #f1 = Filter('EntryId', 'is_equal_to', 2)
+  #f2 = Filter('EntryId', 'is_equal_to', 1)
+  
+  #try:
+  #  entries = wufoo.GetEntriesForForm('m7x3p9')
+  #  print entries
+  #  wufoo.GetEntriesForForm('m7x3p9', filters=[f1, f2])
+  # except HTTPError, he:
+  #  print he
+  
+  # for x in wufoo.GetUsers():
+  #  print x
+  
+  # for x in wufoo.GetWidgets('z5p8s0'):
+  #  print x
+  #  print x.embed_code
+  
+  #comments = wufoo.GetComments('m7x3p9')
+  #for x in comments:
+  #  print x
+    
+  #print wufoo.GetCommentCount('m7x3p9')
+  
+  #x = wufoo.GetForm('m7x3p9')
+  #y = wufoo.GetEntriesForForm('m7x3p9')
+  #for a in y:
+  #  print a
+  
+  # m7x3p9
+  # Field1
+  #data = {'Field11': '999.99'}
+  #wufoo.PostEntry('m7x3p9', data)
+  
+  # for x in wufoo.GetEntriesForForm('m7x3p9'):
+  #  print x
+  
+  #wufoo.PutWebHook('m7x3p9', 'http://www.example.com')
   
   
+  x = wufoo.GetFieldsForReport('z5p8s0', system=True)
+  for y in x:
+    print y
