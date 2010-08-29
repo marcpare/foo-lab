@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+
+<p>Here are some clicky links to test the API.</p>
+<ul>
+    <li><a href="testapi/forms">Forms GET</a></li>
+    <li><a href="testapi/users">Users GET</a></li>
+    <li><a href="testapi/reports">Reports GET</a></li>
+</ul>
+
+<ul>
+    <li><a href="testapi/fields/extensive-cheese-survey">Fields GET extensive-cheese-survey</a></li>
+    <li><a href="testapi/form/extensive-cheese-survey">Form GET extensive-cheese-survey</a></li>    
+    <li><a href="testapi/entries/extensive-cheese-survey">Entries GET extensive-cheese-survey</a></li>
+    <li><a href="testapi/comments/short-cheese-survey">Comments GET short-cheese-survey</a></li>
+</ul>
+
+<ul>
+    <li><a href="testapi/report/cheese-report">Report GET cheese-report</a></li>
+    <li><a href="testapi/widgets/cheese-report">Widgets GET cheese-report</a> <em>This is cool!</em></li>
+</ul>
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3>{{ title }}</h3>
+
+{% for field in thelist %}
+    <table>
+    {% for vals in field.AsDict.items  %}
+        <tr>
+            <th>{{ vals.0 }}</th>
+            <td>
+                {% ifequal vals.0 "subfields" %}
+                    {% for sub_fields in vals.1  %}
+                        <table>
+                            {% for sub_vals in sub_fields.items %}
+                            <tr>
+                            <th>
+                                {{ sub_vals.0 }}
+                            </th>
+                            <td>
+                                {{ sub_vals.1 }}
+                            </td>
+                            </tr>                            
+                            {% endfor %}
+                        </table>
+                    {% endfor%}
+                {% else %}
+                {% ifequal vals.0 "choices" %}
+                    {% for sub_choices in vals.1  %}
+                        <table>
+                            {% for sub_vals in sub_choices.items %}
+                            <tr>
+                            <th>
+                                {{ sub_vals.0 }}
+                            </th>
+                            <td>
+                                {{ sub_vals.1 }}
+                            </td>
+                            </tr>                            
+                            {% endfor %}
+                        </table>
+                    {% endfor%}
+                {% else %}
+                {% ifequal vals.0 "fields" %}
+                    <table>
+                        {% for sub_vals in vals.1.items %}
+                        <tr>
+                        <th>
+                            {{ sub_vals.0 }}
+                        </th>
+                        <td>
+                            {{ sub_vals.1 }}
+                        </td>
+                        </tr>                            
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    {{ vals.1 }}
+                {% endifequal %}
+                {% endifequal %}
+                {% endifequal %}
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+{% endfor %}
+
+{% endblock %}
