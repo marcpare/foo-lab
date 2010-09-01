@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 
 {% block js %}    
-    <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=false" type="text/javascript"></script>  
+    <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=false&amp;key=ABQIAAAAIRfPCJfwJlkTGpfBz5n0sxSDI-g4tkslsDg-Cs1R9gyUYarSLxSZMhGOgLH6wlfMK5Py7QJj7fVaYg" type="text/javascript"></script>  
     
     <script type="text/javascript+protovis">
 
 // http://maps.google.com/maps/api/geocode/xml?address=Atlanta+GA&sensor=false
 
-var dataURL = "http://localhost:8083/getplaces.json";
+// var dataURL = "http://localhost:8083/getplaces.json";
+
+var dataURL = "http://foo-lab.appspot.com/getplaces.json";
 
 var JSONdata = $.ajax({ type: "GET", url: dataURL,
         async: false }).responseText;
@@ -116,8 +118,10 @@ map.addOverlay(new Canvas(crimes));
     We at <a href="http://thinlyspread.tumblr.com/">thinly spread</a> figured that Wufoo data deserved to interact with the rich ecosystem of web APIs at the fingertips of today's programmers. So, we built <a href="http://github.com/marcpare/foo-lab">a Python wrapper</a> and a demo Google App Engine site (this one!) to show how it's done.
     </p>
     
+    <p>By creating a Python wrapper to speak Wufoo's language, you get lots of cool things. First, you get to write in Python! Also, it lets you use existing Python tools for writing code on the web and processing your data. The wrapper covers just about all the features in the API and is easy as pie to use. Check out the <a href="http://github.com/marcpare/foo-lab">github project</a> for more technical information.</p>
+    
     <p>
-    It turns out that our friends have traveled all over the world. We wanted to find out how far and wide their influence reached. We were also really curious to see how their perception of the world transformed through travel. So, we sent them a quick little survey.  
+    Anyway, it turns out that our friends have traveled all over the world. We wanted to find out how far and wide their influence reached. We were also really curious to see how their perception of the world transformed through travel. So, we sent them a quick little survey.  
     </p>
     
     <p class="center">
