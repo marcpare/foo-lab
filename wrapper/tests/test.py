@@ -14,58 +14,6 @@ What to test?
 # GetForm for an invalid hash
 # Date accessors in mock
 
-  global response_str
-  response = {'stuff':'abcd'}
-  response_str = simplejson.dumps(response)
-  fb = facebook.Facebook(my_api_key, my_secret_key)
-  fb.login = self.login
-  fb.auth.createToken()
-  self.assertEquals(str(fb.auth_token['stuff']),"abcd")
-  fb.login()
-  response = {"session_key":"key","uid":"my_uid","secret":"my_secret","expires":"my_expires"}
-  response_str = simplejson.dumps(response)
-  res = fb.auth.getSession()
-  self.assertEquals(str(res["expires"]),response["expires"])
-  self.assertEquals(str(res["secret"]),response["secret"])
-  self.assertEquals(str(res["session_key"]),response["session_key"])
-  self.assertEquals(str(res["uid"]),response["uid"])
-
-  response = {'Forms': 
-    [{'StartDate': '2000-01-01 12:00:00', 
-      'LinkEntries': 'https://marcpare.wufoo.com/api/v3/forms/z7x4a9/entries.json', 
-      'EndDate': '2030-01-01 12:00:00', 
-      'Name': 'How awesome is Marc?', 
-      'Language': 'english', 
-      'Url': 'how-awesome-is-marc', 
-      'RedirectMessage': 'Success! Thanks for filling out my form!', 
-      'IsPublic': '1', 
-      'DateCreated': '2010-08-04 02:31:53', 
-      'LinkFields': 'https://marcpare.wufoo.com/api/v3/forms/z7x4a9/fields.json', 
-      'EntryLimit': '0', 
-      'Hash': 'z7x4a9', 
-      'DateUpdated': '2010-08-11 00:26:02', 
-      'Email': None, 
-      'LinkEntriesCount': 'https://marcpare.wufoo.com/api/v3/forms/z7x4a9/entries/count.json', 
-      'Description': "This is my form. Please fill it out. It's awesome!"}, 
-      { 'StartDate': '2000-01-01 12:00:00', 
-        'LinkEntries': 'https://marcpare.wufoo.com/api/v3/forms/m7x3k1/entries.json', 
-        'EndDate': '2030-01-01 12:00:00', 
-        'Name': 'This is gonna be awesome', 
-        'Language': 'english', 
-        'Url': 'this-is-gonna-be-awesome', 
-        'RedirectMessage': 'Success! Thanks for filling out my form!', 
-        'IsPublic': '1',
-        'DateCreated': '2010-08-12 03:34:32', 
-        'LinkFields': 'https://marcpare.wufoo.com/api/v3/forms/m7x3k1/fields.json', 
-        'EntryLimit': '0', 
-        'Hash': 'm7x3k1', 
-        'DateUpdated': '2010-08-12 03:34:32', 
-        'Email': None, 
-        'LinkEntriesCount': 'https://marcpare.wufoo.com/api/v3/forms/m7x3k1/entries/count.json', 
-        'Description': "This is my form. Please fill it out. It's awesome!"}]}
-
-
-
 '''
 
 import unittest
@@ -77,8 +25,8 @@ import urllib2
 import simplejson
 from minimock import Mock
 
-my_api_key = "W9NL-EB7O-LYRQ-SZNT"
-my_subdomain = "footest"
+my_api_key = "XXXX-XXXX-XXXX-XXXX"
+my_subdomain = "test"
 
 response_str = '{"stuff":"abcd"}'
 class MyUrlOpen:

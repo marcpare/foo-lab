@@ -3,7 +3,8 @@
 Challenges and design decisions:
 
 Some of the code is generated, but the final version is made by hand.
-Certain classes have custom logic that had to be added. Here's a list:
+Certain classes have custom logic that had to be added which prevented
+it all from being generated from an IDL. Here's a list:
 
 * embed_code method of Widget class (which needs subdomain)
 * filtering in Entry class
@@ -17,11 +18,10 @@ Lingering Concerns:
 * Post using a form url? This works, but should maybe rename the parameter 'form_hash'
 * Consistent error and success messages
   * posting entry is different than the others...
-* PUT web hook has a 500 error?
+* PUT web hook has a 500 reponse?
 * Login not going to be implemeted b/c can't be tested w/o integrationKey
   * Also, 'integraitonKey'? Is that mispelled?
 * Forms IncludeTodayCount
-* 
 
 '''
 
@@ -39,6 +39,12 @@ import urlparse
 import dateutil
 import dateutil.parser
 import datetime
+
+# ----------------------------------------
+#
+# Class Definitions
+#
+# ----------------------------------------
 
 class WufooError(Exception):
   '''Base class for Wufoo errors'''
@@ -1093,6 +1099,12 @@ class Form(object):
                 link_entries_count=data.get('LinkEntriesCount', None),
                 description=data.get('Description', None))
 
+# ----------------------------------------
+#
+# API class
+#
+# ----------------------------------------
+
 class Api(object):
 
   _API_REALM = 'Wufoo API'
@@ -1619,77 +1631,4 @@ class Api(object):
     return url_data
     
 if __name__ == "__main__":
-  
-  wufoo = Api("footest", "W9NL-EB7O-LYRQ-SZNT")
-  #wufoo.GetForms()
-  
-  #for x in wufoo.GetForms():
-  #  print str(x)
-    
-  # Nice! The difference between when the form was updated and right now
-  #wufoo.GetForms()
-  #a_form = wufoo.GetForm('m7x3p9')
-  # updated = a_form.date_updated
-  # print datetime.datetime.now() - updated
-  
-  # reports = wufoo.GetReports()
-  #print reports
-  # print reports[0].hash
-  # es = wufoo.GetEntriesForReport(reports[0].hash)
-  
-  # wufoo.GetEntriesForForm('m7x3p9', system=True, sort_id='Field1', sort_direction='ASC')
-  
-  # wufoo.GetEntriesForForm('m7x3p9', page_size=2)
-  # wufoo.GetEntriesForForm('m7x3p9', page_size=1, page_start=0)
-  # wufoo.GetEntriesForForm('m7x3p9', page_size=1, page_start=1)
-  
-  #print es[0]
-  
-  # you will want to layer the Fields GET with the Entries GET...
-  # {'Entries': [{'DateUpdated': '', 'EntryId': '1', 'Field108': 'Paris', 'CreatedBy': 'public', 'UpdatedBy': None, 'Field105': 'France', 'Field104': 'Brie', 'Field107': 'St', 'Field106': '100', 'DateCreated': '2010-08-17 11:39:35', 'Field110': ''}]}
-  
-  # print wufoo.GetFormEntryCount('m7x3p9')
-  # print wufoo.GetReportEntryCount('z5p8s0')
-  
-  #f1 = Filter('EntryId', 'is_equal_to', 2)
-  #f2 = Filter('EntryId', 'is_equal_to', 1)
-  
-  #try:
-  #  entries = wufoo.GetEntriesForForm('m7x3p9')
-  #  print entries
-  #  wufoo.GetEntriesForForm('m7x3p9', filters=[f1, f2])
-  # except HTTPError, he:
-  #  print he
-  
-  # for x in wufoo.GetUsers():
-  #  print x
-  
-  # for x in wufoo.GetWidgets('z5p8s0'):
-  #  print x
-  #  print x.embed_code
-  
-  #comments = wufoo.GetComments('m7x3p9')
-  #for x in comments:
-  #  print x
-    
-  #print wufoo.GetCommentCount('m7x3p9')
-  
-  #x = wufoo.GetForm('m7x3p9')
-  #y = wufoo.GetEntriesForForm('m7x3p9')
-  #for a in y:
-  #  print a
-  
-  # m7x3p9
-  # Field1
-  #data = {'Field11': '999.99'}
-  #wufoo.PostEntry('m7x3p9', data)
-  
-  # for x in wufoo.GetEntriesForForm('m7x3p9'):
-  #  print x
-  
-  #wufoo.PutWebHook('m7x3p9', 'http://www.example.com')
-  
-  
-  x = wufoo.GetFieldsForReport('z5p8s0', system=True)
-  for y in x:
-    print y
+  pass

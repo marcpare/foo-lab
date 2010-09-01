@@ -1,71 +1,147 @@
 {% extends "base.html" %}
-{% block content %}
 
-<div class="block">
-    <p>use foo lab to remix your Wufoo form data into something magical.</p>
-</div>
-
-<div class="block">
-    <h3>your Wufoo forms</h3>
-    <!--
-    <p>fill out config.yaml in your app to have your forms show up here.</p>
-    <p>get your API key from Wufoo. Follow these links:</p>
-    <ul>
-        <li>Form Manager or "Forms Tab"</li>
-        <li>Code</li>
-        <li>API Information</li>
-    </ul>
+{% block js %}    
+    <script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=false" type="text/javascript"></script>  
     
-    -->
-    
-    <ul id="form-list">
-        <li>
-            <h4>your-first-form</h4>
-            <form>
-                <ul>
-                    <li class="right">
-                    <input id="hookForm" name="hookForm" type="submit" value="Hook Form" onmousedown="doHook();" />
-                    </li>
-                </ul>
-            </form>
-        </li>
-        
-        <li>
-            <h4>another-form</h4>
-            <form>
-                <ul>
-                    <li class="right">
-                    <input id="hookForm" name="hookForm" type="submit" value="Hook Form" onmousedown="doHook();" />
-                    </li>
-                </ul>
-            </form>
-        </li>
-    </ul>
-    
-    
-<!--        
-    <form id="form1" name="form1" autocomplete="off" enctype="multipart/form-data" method="post" action="">
+    <script type="text/javascript+protovis">
 
-    <ul>
-        <li>
-        <label class="desc" id="title10" for="Field_API">
-        API Key
-        </label>
-        <div>
-        <input id="Field_API" name="Field_API" type="text" value="" maxlength="255" class="text"/>
-        </div>
-        </li>
+// http://maps.google.com/maps/api/geocode/xml?address=Atlanta+GA&sensor=false
 
-        <li>
-        <div>
-        <input id="hookForm" name="hookForm" type="submit" value="Hook Form" onmousedown="doHook();" />
-        </div>
-        </li>
+var dataURL = "http://localhost:8083/getplaces.json";
 
-    </ul>
-        
-    </form>
--->
-</div>
+var JSONdata = $.ajax({ type: "GET", url: dataURL,
+        async: false }).responseText;
 
+var crimes = JSON.parse(JSONdata);
+
+    var codes = [
+      { code: "AA", name: "Aggravated Assault", category: "violent" },
+      { code: "Mu", name: "Murder", category: "violent" },
+      { code: "Ro", name: "Robbery", category: "violent" },
+      { code: "SA", name: "Simple Assault", category: "violent" },
+      { code: "Ar", name: "Arson", category: "property" },
+      { code: "Bu", name: "Burglary", category: "property" },
+      { code: "Th", name: "Theft", category: "property" },
+      { code: "Va", name: "Vandalism", category: "property" },
+      { code: "VT", name: "Vehicle Theft", category: "property" },
+      { code: "Al", name: "Alcohol", category: "quality" },
+      { code: "DP", name: "Disturbing the Peace", category: "quality" },
+      { code: "Na", name: "Narcotics", category: "quality" },
+      { code: "Pr", name: "Prostitution", category: "quality" }
+    ];
+
+
+var colors = {
+  violent: { light: "rgba(255, 255, 255, .8)", dark: "rgb(207, 181, 59)" },
+  property: { light: "rgba(35, 150, 94, .8)", dark: "rgb(26, 112, 70)" },
+  quality: { light: "rgba(52, 137, 186, .8)", dark: "rgb(39, 103, 139)" },
+};
+
+codes.forEach(function(x) colors[x.code] = colors[x.category]);
+
+function Canvas(crimes) {
+  this.crimes = crimes;
+}
+
+Canvas.prototype = pv.extend(GOverlay);
+
+Canvas.prototype.initialize = function(map) {
+  this.map = map;
+  this.canvas = document.createElement("div");
+  this.canvas.setAttribute("class", "canvas");
+  map.getPane(G_MAP_MAP_PANE).parentNode.appendChild(this.canvas);
+};
+
+Canvas.prototype.redraw = function(force) {
+  if (!force) return;
+  var c = this.canvas, m = this.map, r = 20;
+
+  /* Get the pixel locations of the crimes. */
+  var pixels = this.crimes.map(function(d) {
+      return m.fromLatLngToDivPixel(new GLatLng(d.lat, d.lon));
+    });
+
+  /* Update the canvas bounds. Note: may be large. */
+  function x(p) p.x; function y(p) p.y;
+  var x = { min: pv.min(pixels, x) - r, max: pv.max(pixels, x) + r };
+  var y = { min: pv.min(pixels, y) - r, max: pv.max(pixels, y) + r };
+  c.style.width = (x.max - x.min) + "px";
+  c.style.height = (y.max - y.min) + "px";
+  c.style.left = x.min + "px";
+  c.style.top = y.min + "px";
+
+  /* Render the visualization. */
+  new pv.Panel()
+      .canvas(c)
+      .left(-x.min)
+      .top(-y.min)
+    .add(pv.Panel)
+      .data(this.crimes)
+    .add(pv.Dot)
+      .left(function() pixels[this.parent.index].x)
+      .top(function() pixels[this.parent.index].y)
+      .strokeStyle(function(x, d) colors[d.code].dark)
+      .fillStyle(function(x, d) colors[d.code].light)
+      .size(30)
+    .root.render();
+};
+
+/* Restrict minimum and maximum zoom levels. */
+//G_NORMAL_MAP.getMinimumResolution = function() 11;
+//G_NORMAL_MAP.getMaximumResolution = function() 14;
+
+var map = new GMap2(document.getElementById("map"));
+map.setCenter(new GLatLng(0.0, 0.0), 2);
+map.setUI(map.getDefaultUI());
+map.addOverlay(new Canvas(crimes));
+
+    </script>  
 {% endblock %}
+
+<!--    
+    <style type="text/css">
+
+
+
+    </style>
+    -->
+
+    {% block content %}    
+    
+    <div class="block">
+        <p>foo lab is about remixing your Wufoo form data into something magical.</p>
+    </div>
+    
+    <p>
+    We at <a href="http://thinlyspread.tumblr.com/">thinly spread</a> figured that Wufoo data deserved to interact with the rich ecosystem of web APIs at the fingertips of today's programmers. So, we built <a href="http://github.com/marcpare/foo-lab">a Python wrapper</a> and a demo Google App Engine site (this one!) to show how it's done.
+    </p>
+    
+    <p>
+    It turns out that our friends have traveled all over the world. We wanted to find out how far and wide their influence reached. We were also really curious to see how their perception of the world transformed through travel. So, we sent them a quick little survey.  
+    </p>
+    
+    <p class="center">
+        <img src="http://img.skitch.com/20100901-fr96wpmytak5bxk7dyr9a36p5b.jpg" width="350px"/>
+        <img src="http://img.skitch.com/20100901-xr5cdp66iar95xwcmtrw3k5hiy.jpg" width="350px"/></p>
+    
+    <p>It turns out that there wasn't a form field to collect the data that we wanted! So, we used our GAE app (which we're calling foo lab) to parse and geolocate the places that all our friends had been. Here's what it ended up looking like:</p>
+
+    <div id="map"></div>    
+    
+    <p>Now, we're really interested in finding out more about the tiny stories embedded in the experiences of our network. We've gotten some really good ones so far, like:</p>
+    
+    <p class="story">In Agra, it is more expensive for foreigners to enter the Taj than it is for locals. My travel partner and I faked the language and got in!</p>
+    <p class="story">Now I've moved to Berkeley, which seems even more foreign than Mexico or Spain!</p>
+    <p class="story">I became a French celebrity for yelling OBAMA at the top of my lungs on cue even though I was secretly a McCain supporter.</p>
+    
+    <p>We're thinking of pushing this through sentiment analysis algorithms or machine learning engines to find out trends, important feelings, or who knows?</p>
+    
+    <p>If you're curious about applying foo lab to your work, your life, let us know. We had a blast fiddling with the data, and we don't intend to quit anytime soon.</p>
+    
+    <hr />
+
+    <p>A quick thank you to <a href="http://www.wufoo.com">Wufoo</a> for development support along the way and the Office of International Education at Georgia Tech</p>
+    
+    <p>Contact: <a href="mailto:sirgawain33@gmail.com">[email]</a></p>
+    {% endblock %}
+
